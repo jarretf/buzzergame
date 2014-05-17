@@ -146,7 +146,7 @@ public class MainActivity extends ActionBarActivity implements ActionBar.TabList
 	    				    .setIcon(android.R.drawable.ic_dialog_alert)
 	    				    .show();
 	                	} else {
-		                	addNewAppUser(name);
+		                	Application.user = addNewAppUser(name);
 		                	Toast.makeText(context, "Player Created successfuly", Toast.LENGTH_SHORT).show();
 	                	}
 	                }
@@ -192,17 +192,18 @@ public class MainActivity extends ActionBarActivity implements ActionBar.TabList
 	}
 
 
-	protected void addNewAppUser(String name) {
+	protected ParseObject addNewAppUser(String name) {
 		
 	      ParseObject parseObject = new ParseObject("AppUser");
 	      parseObject.put("name", name);
 	      parseObject.put("installationId", ParseInstallation.getCurrentInstallation().getInstallationId());
 	      try {
 			parseObject.save();
-		} catch (ParseException e) {
+		  } catch (ParseException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		}
+		  }
+	      return parseObject;
 	}
 
 
@@ -213,14 +214,16 @@ public class MainActivity extends ActionBarActivity implements ActionBar.TabList
 		userExistQuery.whereEqualTo("installationId",
 				ParseInstallation.getCurrentInstallation().getInstallationId());
 		List<ParseObject> res = null;
-		
+		Log.e("bla","installation id:"+ParseInstallation.getCurrentInstallation().getInstallationId());
 		try {
 			res = userExistQuery.find();
 			if (res.isEmpty()) {
+				Log.e("bla", "in empty");
 	        	//open dialog for new user
 	        	newUserDialog();
-	        	res = userExistQuery.find();
+	        	//res = userExistQuery.find();
 			} else {
+				Application.user = res.get(0);
 				Toast.makeText(this, "Welcome back "+res.get(0).getString("name"), Toast.LENGTH_SHORT).show();
 			}
 			Log.e("bla", "find "+res.size());
@@ -229,7 +232,7 @@ public class MainActivity extends ActionBarActivity implements ActionBar.TabList
 			e.printStackTrace();
 		}
 		
-		Application.user = res.get(0);
+		//Application.user = res.get(0);
 		
 	}
 
@@ -286,6 +289,9 @@ public class MainActivity extends ActionBarActivity implements ActionBar.TabList
         	}
         	if (position == 1) {
         		return GameFragment.newInstance("njlbGL0qb4");
+        	}
+        	if (position == 2) {
+        		return NotificationsFragment.newInstance();
         	}
             // getItem is called to instantiate the fragment for the given page.
             // Return a PlaceholderFragment (defined as a static inner class below).
