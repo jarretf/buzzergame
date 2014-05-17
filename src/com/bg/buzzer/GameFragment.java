@@ -1,5 +1,9 @@
 package com.bg.buzzer;
 
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
+
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -43,6 +47,7 @@ public class GameFragment extends Fragment{
     private static final String ARG_GAME_ID = "game_id";
 	private ParseObject game;
 	private LayoutInflater inflater;
+	private ParseQueryAdapter<ParseObject> playerAdapter;
     
     /**
      * Returns a new instance of this fragment for the given section
@@ -75,26 +80,26 @@ public class GameFragment extends Fragment{
 			e.printStackTrace();
 		}
         
-        final ParseQueryAdapter<ParseObject> playerAdapter =
-        		  new ParseQueryAdapter<ParseObject>(rootView.getContext(), 
-        				  new ParseQueryAdapter.QueryFactory<ParseObject>() {
-			        		    public ParseQuery<ParseObject> create() {
-			        		      // Here we can configure a ParseQuery to our heart's desire.
-			        		    	  return game.getRelation("players").getQuery();
-			        		    }
-			        		  });
+        playerAdapter = new ParseQueryAdapter<ParseObject>(rootView.getContext(), 
+				  new ParseQueryAdapter.QueryFactory<ParseObject>() {
+		    		    public ParseQuery<ParseObject> create() {
+		    		      // Here we can configure a ParseQuery to our heart's desire.
+		    		    	  return game.getRelation("players").getQuery();
+		    		    }
+		    		  });
         playerAdapter.setTextKey("name");
         
         
-        final ParseQueryAdapter<ParseObject> adapter = new ParseQueryAdapter<ParseObject>(rootView.getContext(), "Game");
-        adapter.setTextKey("name");
+        //final ParseQueryAdapter<ParseObject> adapter = new ParseQueryAdapter<ParseObject>(rootView.getContext(), "Game");
+        //adapter.setTextKey("name");
         //adapter.setImageKey("photo");
        
         TextView textView = (TextView) rootView.findViewById(R.id.game_name_label);
         textView.setText("Game: "+game.getString("name"));
-        
+     
         ListView listView = (ListView) rootView.findViewById(R.id.player_list_label);
         listView.setAdapter(playerAdapter);
+        
         listView.setOnItemClickListener(new OnItemClickListener() {
 
 			@Override
@@ -143,10 +148,11 @@ public class GameFragment extends Fragment{
 		                	String messageString = message.getText().toString();
 		                	if (messageString.equals("")) {
 		                		messageString = "No message";
-		                	} else {
-		                		sendVibrateNotification(Application.user,selectedUser,messageString);
-			                	Toast.makeText(context, "Buzz sent to "+selectedUserName+"!", Toast.LENGTH_SHORT).show();
-		                	}
+		                	} 
+	                		handleNotification(Application.user, selectedUser, game, messageString);
+	                		//sendVibrateNotification(Application.user,selectedUser,messageString);
+		                	Toast.makeText(context, "Buzz sent to "+selectedUserName+"!", Toast.LENGTH_SHORT).show();
+		                	
 		                }
 		            })
 		            .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
@@ -163,6 +169,7 @@ public class GameFragment extends Fragment{
     	game.getRelation("players").add(appUser);
     	try {
 			game.save();
+			playerAdapter.loadObjects();
 			Toast.makeText(getActivity(), "You joined "+game.getString("name"),Toast.LENGTH_SHORT).show();
 		} catch (ParseException e) {
 			// TODO Auto-generated catch block
@@ -189,16 +196,31 @@ public class GameFragment extends Fragment{
 	
 	protected void sendNotificationAll(ParseObject userFrom, 
 			ParseObject userTo, ParseObject game) {
-		
-		String message = game.getString("name:")+": "+userFrom.getString("name")+" Buzzed "+userTo.getString("name");
+
+		String message = game.getString("name")+": "+userFrom.getString("name")+" Buzzed "+userTo.getString("name");
 		// Create our Installation query
-		ParseQuery<ParseObject> query = game.getRelation("players").getQuery().whereNotEqualTo("objectId", userTo.getObjectId());
-		query.whereNotEqualTo("objectId", userFrom.getObjectId());
+		//ParseQuery<ParseObject> query = game.getRelation("players").getQuery().whereNotEqualTo("objectId", userTo.getObjectId());
+		//query = query.whereNotEqualTo("objectId", userFrom.getObjectId());
+		LinkedList<String> objects = new LinkedList<String>();
+		objects.add(userTo.getObjectId()); objects.add(userFrom.getObjectId());
+		//query = query.whereNotContainedIn("objectId", objects);
+		ParseQuery<ParseObject> query = game.getRelation("players").getQuery().whereNotContainedIn("objectId", objects);
 		//ParseQuery<ParseObject> pushQuery1 = ParseQuery.getQuery("AppUser");
 		ParseQuery<ParseInstallation> pushQuery = ParseInstallation.getQuery();
 		pushQuery.whereMatchesKeyInQuery("installationId", "installationId", query);
 		//pushQuery.whereEqualTo("installationId", installationId);
-		
+		List<ParseObject> res;
+		try {
+			res = query.find();
+			Log.e("bla","names: list size"+res.size());
+			for (ParseObject parseObject : res) {
+				Log.e("bla","names: "+parseObject.getString("name"));
+			}
+		} catch (ParseException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
 		// Send push notification to query
 		ParsePush push = new ParsePush();
 		push.setQuery(pushQuery); // Set our Installation query
@@ -207,4 +229,30 @@ public class GameFragment extends Fragment{
 		push.sendInBackground();
 	}
 	
+	protected ParseObject addNotification(ParseObject userFrom, 
+			ParseObject userTo, ParseObject game) {
+		
+		
+		ParseObject notification = new ParseObject("Notifications");
+		notification.put("from", userFrom);
+		notification.put("to", userTo);
+		notification.put("game", game);
+		notification.put("type", "buzz");
+		notification.put("responded", false);
+		notification.saveInBackground();
+		Log.e("bla","notification sent");
+		return notification;
+	}
+	
+	protected void handleNotification(ParseObject userFrom, 
+			ParseObject userTo, ParseObject game, String message){
+		
+		addNotification(userFrom, userTo, game);
+		sendVibrateNotification(userFrom, userTo, message);
+		sendNotificationAll(userFrom, userTo, game);
+	}
+	
+	protected void updateData(ParseObject game) {
+		
+	}
 }
