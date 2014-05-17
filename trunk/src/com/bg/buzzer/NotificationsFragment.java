@@ -104,7 +104,16 @@ public class NotificationsFragment extends Fragment{
 			public void onItemClick(AdapterView<?> arg0, View view,
 					int position, long id) {
 				
-				ParseObject selectedUser = notificationsAdapter.getItem(position);
+				try {
+					ParseObject game = notificationsAdapter.getItem(position).getParseObject("game").fetchIfNeeded();
+					MainActivity main = (MainActivity) getActivity();
+					main.updateCurrentGame(game);
+					main.mViewPager.setCurrentItem(1);
+					
+				} catch (ParseException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
 			}
 
 		});

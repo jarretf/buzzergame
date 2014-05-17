@@ -54,6 +54,8 @@ public class MainActivity extends ActionBarActivity implements ActionBar.TabList
      * The {@link ViewPager} that will host the section contents.
      */
     ViewPager mViewPager;
+    
+    private GameFragment gameFragment;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -278,7 +280,9 @@ public class MainActivity extends ActionBarActivity implements ActionBar.TabList
      */
     public class SectionsPagerAdapter extends FragmentPagerAdapter {
 
-        public SectionsPagerAdapter(FragmentManager fm) {
+        
+
+		public SectionsPagerAdapter(FragmentManager fm) {
             super(fm);
         }
 
@@ -288,7 +292,8 @@ public class MainActivity extends ActionBarActivity implements ActionBar.TabList
         		return GamesFragment.newInstance(position+1);
         	}
         	if (position == 1) {
-        		return GameFragment.newInstance("njlbGL0qb4");
+        		gameFragment = GameFragment.newInstance("njlbGL0qb4");
+        		return gameFragment;
         	}
         	if (position == 2) {
         		return NotificationsFragment.newInstance();
@@ -353,5 +358,9 @@ public class MainActivity extends ActionBarActivity implements ActionBar.TabList
             return rootView;
         }
     }
+
+	public void updateCurrentGame(ParseObject game) {
+		gameFragment.updateData(game);
+	}
 
 }

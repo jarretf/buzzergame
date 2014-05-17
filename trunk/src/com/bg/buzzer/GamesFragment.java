@@ -77,6 +77,7 @@ public class GamesFragment extends Fragment {
 			public void onItemClick(AdapterView<?> arg0, View view,
 					int position, long id) {
 				MainActivity main = (MainActivity) getActivity();
+				main.updateCurrentGame(adapter.getItem(position));
 				main.mViewPager.setCurrentItem(1);
 				
 //				Toast.makeText(view.getContext(), "chosen position "+position+", chosen text = "+adapter.getItem(position).getString("name"), Toast.LENGTH_SHORT).show();
