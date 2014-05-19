@@ -3,17 +3,20 @@ package com.bg.buzzer;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Random;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import com.parse.GetCallback;
+import com.parse.Parse;
 import com.parse.ParseException;
 import com.parse.ParseInstallation;
 import com.parse.ParseObject;
 import com.parse.ParsePush;
 import com.parse.ParseQuery;
 import com.parse.ParseQueryAdapter;
+import com.parse.SaveCallback;
 
 import android.app.AlertDialog;
 import android.content.Context;
@@ -98,7 +101,14 @@ public class GameFragment extends Fragment{
         //adapter.setImageKey("photo");
        
         textView = (TextView) rootView.findViewById(R.id.game_name_label);
-        textView.setText("Game: "+game.getString("name"));
+        String gameStats = "Game: "+game.getString("name")+"     Rounds: "+game.getInt("rounds");
+        String turn= game.getString("turn");
+        if (turn!=null && Application.user != null && game.getString("turn").equals(Application.user.getObjectId())) {
+        	gameStats += "\nIt's your turn, Buzz someone";
+        } else {
+        	
+        }
+        textView.setText(gameStats);
      
         ListView listView = (ListView) rootView.findViewById(R.id.player_list_label);
         listView.setAdapter(playerAdapter);
@@ -108,16 +118,29 @@ public class GameFragment extends Fragment{
 			@Override
 			public void onItemClick(AdapterView<?> arg0, View view,
 					int position, long id) {
-				
-				if (game.getString("turn").equals(Application.user.getObjectId())) {
-					ParseObject selectedUser = playerAdapter.getItem(position);
-					vibrateDialog(selectedUser);
-				} else if (game.getString("buzzed").equals(Application.user.getObjectId())) {
-					ParseObject selectedUser = playerAdapter.getItem(position);
-					checkGuessDialog(selectedUser);
-				} else {
-					wrongTurnDialog();
+				try{
+					if (game.getString("turn").equals(Application.user.getObjectId())) {
+						ParseObject selectedUser = playerAdapter.getItem(position);
+						if (selectedUser.getObjectId().equals(Application.user.getObjectId())) {
+							wrongPlayerDialog();
+						} else {
+							vibrateDialog(selectedUser);
+						}
+					} else if (lastNotification != null && 
+							lastNotification.getParseObject("to").fetch().getObjectId().equals(Application.user.getObjectId()) &&
+							lastNotification.getBoolean("responded") == false) {
+						ParseObject selectedUser = playerAdapter.getItem(position);
+						checkGuessDialog(selectedUser);
+						lastNotification.put("responded",true);
+						lastNotification.saveEventually();
+						changeTurn();
+					} else {
+						wrongTurnDialog();
+					}
+				} catch(ParseException e) {
+					
 				}
+				
 				
 			}
 
@@ -139,14 +162,55 @@ public class GameFragment extends Fragment{
         return rootView;
     }
     
-    protected void checkGuessDialog(ParseObject selectedUser) {
+    protected void wrongPlayerDialog() {
+		new AlertDialog.Builder(getActivity())
+		.setMessage("Can't buzz yourself...")
+		.setNeutralButton(android.R.string.ok, new DialogInterface.OnClickListener() {
+		    public void onClick(DialogInterface dialog, int which) { 
+		        // do nothing
+		    }
+		 })
+		.setIcon(android.R.drawable.ic_dialog_alert)
+		.show();
+	}
+
+	protected void changeTurn() {
+    	
+		int nextPlayerIndex = new Random().nextInt(playerAdapter.getCount());
+		final ParseObject nextPlayer = playerAdapter.getItem(nextPlayerIndex);
+		game.put("turn", nextPlayer.getObjectId());
+		game.increment("rounds");
+		game.saveInBackground(new SaveCallback() {
+			
+			@Override
+			public void done(ParseException e) {
+				String message = game.getString("name") + ": yoohoo - you are up next, Buzz the person you like the most";
+				sendVibrateNotification(nextPlayer, message);
+			}
+		});
+
 		
-    	String message = selectedUser.getString("name")+"buzzed you... \n"; 
-    	if (true) {
-    		message += "You guessed right!";
-    	} else {
-    		message += "You guessed wrong!";
-    	}
+	}
+
+	protected void checkGuessDialog(ParseObject selectedUser) {
+		
+    	String message = "Error";
+    	ParseObject buzzer;
+		try {
+			buzzer = lastNotification.getParseObject("buzzer").fetch();
+	    	boolean check = buzzer.getObjectId().equals(selectedUser.getObjectId());
+	    	message = buzzer.getString("name")+"buzzed you... \n"; 
+	    	if (check) {
+	    		message += "You guessed right!";
+	    	} else {
+	    		message += "You guessed wrong!";
+	    	}
+		} catch (ParseException e) {
+			
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
     	
     	new AlertDialog.Builder(getActivity())
 		.setMessage(message)
@@ -211,7 +275,7 @@ public class GameFragment extends Fragment{
 	/**
 	 * 
 	 */
-	protected void sendVibrateNotification(ParseObject userFrom, ParseObject userTo, String message) {
+	protected void sendVibrateNotification(ParseObject userTo, String message) {
 		
 		String installationId = userTo.getString("installationId");
 		// Create our Installation query
@@ -221,7 +285,7 @@ public class GameFragment extends Fragment{
 		// Send push notification to query
 		ParsePush push = new ParsePush();
 		push.setQuery(pushQuery); // Set our Installation query
-		push.setMessage("Buzz! Buzz!: "+message);
+		push.setMessage(message);
 		push.sendInBackground();
 	}
 	
@@ -261,16 +325,26 @@ public class GameFragment extends Fragment{
 	}
 	
 	protected ParseObject addNotification(ParseObject userFrom, 
-			ParseObject userTo, ParseObject game) {
+			ParseObject userTo, final ParseObject game) {
 		
 		
-		ParseObject notification = new ParseObject("Notifications");
+		final ParseObject notification = new ParseObject("Notifications");
 		notification.put("from", userFrom);
 		notification.put("to", userTo);
 		notification.put("game", game);
 		notification.put("type", "buzz");
 		notification.put("responded", false);
-		notification.saveInBackground();
+		notification.saveInBackground(new SaveCallback() {
+			
+			@Override
+			public void done(ParseException e) {
+				game.put("lastNotification", notification);
+				game.saveInBackground();
+				
+			}
+		});
+		
+		
 		Log.e("bla","notification sent");
 		return notification;
 	}
@@ -279,7 +353,7 @@ public class GameFragment extends Fragment{
 			ParseObject userTo, ParseObject game, String message){
 		
 		addNotification(userFrom, userTo, game);
-		sendVibrateNotification(userFrom, userTo, message);
+		sendVibrateNotification(userTo,"Buzz! Buzz!: "+ message);
 		sendNotificationAll(userFrom, userTo, game);
 	}
 	
@@ -287,13 +361,15 @@ public class GameFragment extends Fragment{
 		this.game = game;
 		textView.setText("Game: "+game.getString("name"));
 		playerAdapter.loadObjects();
-		game.getParseObject("lastNotification").fetchInBackground(new GetCallback<ParseObject>() {
-
-			@Override
-			public void done(ParseObject notification, ParseException arg1) {
-				lastNotification = notification;
-			}
-		});
+		if (game.getParseObject("lastNotification") != null) {
+			game.getParseObject("lastNotification").fetchInBackground(new GetCallback<ParseObject>() {
+	
+				@Override
+				public void done(ParseObject notification, ParseException arg1) {
+					lastNotification = notification;
+				}
+			});
+		}
 	}
 
 	private void wrongTurnDialog() {

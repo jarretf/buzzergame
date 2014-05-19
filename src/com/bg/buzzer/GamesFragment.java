@@ -53,6 +53,7 @@ public class GamesFragment extends Fragment {
     }
 
 	private LayoutInflater inflater;
+	private ParseQueryAdapter<ParseObject> adapter;
 
     public GamesFragment() {
     }
@@ -64,7 +65,7 @@ public class GamesFragment extends Fragment {
     	this.inflater = inflater;
         View rootView = inflater.inflate(R.layout.fragment_games, container, false);
         final ViewGroup mContainer = container;
-        final ParseQueryAdapter<ParseObject> adapter = new ParseQueryAdapter<ParseObject>(rootView.getContext(), "Game");
+        adapter = new ParseQueryAdapter<ParseObject>(rootView.getContext(), "Game");
         adapter.setTextKey("name");
         //adapter.setImageKey("photo");
        
@@ -165,9 +166,11 @@ public class GamesFragment extends Fragment {
 	      ParseObject parseObject = new ParseObject("Game");
 	      parseObject.put("name", name);
 	      parseObject.put("rounds", 0);
+	      parseObject.put("turn", Application.user.getObjectId());
 	      parseObject.getRelation("players").add(Application.user);	
 	      try {
 			parseObject.save();
+			adapter.loadObjects();
 		} catch (ParseException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
