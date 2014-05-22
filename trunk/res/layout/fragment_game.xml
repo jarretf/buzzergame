@@ -14,28 +14,42 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignParentTop="true"
-        android:orientation="vertical" >"
+        android:orientation="vertical" >
+        
 	    <TextView
 	        android:id="@+id/game_name_label"
 	        android:layout_width="wrap_content"
-	        android:layout_height="wrap_content" />
+	        android:layout_height="wrap_content"
+	        android:paddingTop="6dp"
+	        android:paddingBottom="1dp" />
+	    <TextView
+	        android:id="@+id/game_turn_label"
+	        android:layout_width="wrap_content"
+	        android:layout_height="wrap_content"
+	        android:paddingTop="1dp"
+	        android:paddingBottom="7dp" />
 	
 	    <ListView
 	        android:id="@+id/player_list_label"
 	        android:layout_width="wrap_content"
-	        android:layout_height="wrap_content" />
+	        android:layout_height="wrap_content"
+	        android:paddingTop="4dp" />
     </LinearLayout>
     <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
-        android:layout_centerHorizontal="true">
+        android:layout_centerHorizontal="true"
+        >
 		   	<Button
 		       android:id="@+id/join_button"
 		       style="?android:attr/buttonStyleSmall"
 		       android:layout_width="wrap_content"
 		       android:layout_height="wrap_content"
-		       android:text="Join Game" />
+		       android:text="  Join Game"
+		       android:drawableLeft="@drawable/ic_input_add"
+  			   android:gravity="left|center_vertical"
+  			   android:background="@android:color/transparent" />
    	</LinearLayout>
 
 </RelativeLayout>

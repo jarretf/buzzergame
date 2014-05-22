@@ -21,9 +21,12 @@ import com.parse.SaveCallback;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.graphics.Color;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.util.Log;
+import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -31,6 +34,8 @@ import android.view.View.OnClickListener;
 import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -54,6 +59,7 @@ public class GameFragment extends Fragment{
 	private ParseQueryAdapter<ParseObject> playerAdapter;
 	private TextView textView;
 	private ParseObject lastNotification;
+	private TextView turnText;
     
     /**
      * Returns a new instance of this fragment for the given section
@@ -76,7 +82,7 @@ public class GameFragment extends Fragment{
     	
     	this.inflater = inflater;
         View rootView = inflater.inflate(R.layout.fragment_game, container, false);
-        Toast.makeText(rootView.getContext(), "loading", Toast.LENGTH_SHORT).show();
+        
         
         ParseQuery<ParseObject> query = ParseQuery.getQuery("Game");
         try {
@@ -86,14 +92,17 @@ public class GameFragment extends Fragment{
 			e.printStackTrace();
 		}
         
-        playerAdapter = new ParseQueryAdapter<ParseObject>(rootView.getContext(), 
+        playerAdapter = new DisgnedQueryAdapter(rootView.getContext(), 
 				  new ParseQueryAdapter.QueryFactory<ParseObject>() {
 		    		    public ParseQuery<ParseObject> create() {
 		    		      // Here we can configure a ParseQuery to our heart's desire.
 		    		    	  return game.getRelation("players").getQuery();
 		    		    }
+		    		    
 		    		  });
         playerAdapter.setTextKey("name");
+        playerAdapter.setImageKey("photo");
+        playerAdapter.setPlaceholder(getResources().getDrawable(android.R.drawable.ic_menu_myplaces));
         
         
         //final ParseQueryAdapter<ParseObject> adapter = new ParseQueryAdapter<ParseObject>(rootView.getContext(), "Game");
@@ -101,14 +110,19 @@ public class GameFragment extends Fragment{
         //adapter.setImageKey("photo");
        
         textView = (TextView) rootView.findViewById(R.id.game_name_label);
-        String gameStats = "Game: "+game.getString("name")+"     Rounds: "+game.getInt("rounds");
-        String turn= game.getString("turn");
-        if (turn!=null && Application.user != null && game.getString("turn").equals(Application.user.getObjectId())) {
-        	gameStats += "\nIt's your turn, Buzz someone";
-        } else {
-        	
-        }
+        String gameStats = "Game: "+game.getString("name")+"          Round: "+game.getInt("rounds");
+//        String turn= game.getString("turn");
+//        if (turn!=null && Application.user != null && game.getString("turn").equals(Application.user.getObjectId())) {
+//        	gameStats += "\nIt's your turn, Buzz someone\n";
+//        } else {
+//        	gameStats += "\nSomeone else's turn to Buzz\n";
+//        }
+        
         textView.setText(gameStats);
+        textView.setTextSize(TypedValue.COMPLEX_UNIT_SP,22);
+        
+        turnText = (TextView) rootView.findViewById(R.id.game_turn_label);
+        setTurnText();
      
         ListView listView = (ListView) rootView.findViewById(R.id.player_list_label);
         listView.setAdapter(playerAdapter);
@@ -162,7 +176,31 @@ public class GameFragment extends Fragment{
         return rootView;
     }
     
-    protected void wrongPlayerDialog() {
+    private void setTurnText() {
+    	final String text = "Turn: someone else...";
+        String turn= game.getString("turn");
+        if (turn!=null && Application.user != null && game.getString("turn").equals(Application.user.getObjectId())) {
+        	turnText.setText("Turn: It's your turn, Buzz someone");
+        	return;
+        } else if (lastNotification != null && Application.user != null) {
+        	lastNotification.getParseObject("to").fetchInBackground(new GetCallback<ParseObject>() {
+
+				@Override
+				public void done(ParseObject to, ParseException e) {
+					
+					if (to.getObjectId().equals(Application.user.getObjectId()) 
+							&& lastNotification.getBoolean("responded") == false ) {
+						turnText.setText("Turn: Guess who buzzed you!");
+					}
+					
+				}
+			});
+        }
+        turnText.setText(text);
+        	
+	}
+
+	protected void wrongPlayerDialog() {
 		new AlertDialog.Builder(getActivity())
 		.setMessage("Can't buzz yourself...")
 		.setNeutralButton(android.R.string.ok, new DialogInterface.OnClickListener() {
@@ -186,8 +224,10 @@ public class GameFragment extends Fragment{
 			public void done(ParseException e) {
 				String message = game.getString("name") + ": yoohoo - you are up next, Buzz the person you like the most";
 				sendVibrateNotification(nextPlayer, message);
+				setTurnText();
 			}
 		});
+		
 
 		
 	}
@@ -197,9 +237,9 @@ public class GameFragment extends Fragment{
     	String message = "Error";
     	ParseObject buzzer;
 		try {
-			buzzer = lastNotification.getParseObject("buzzer").fetch();
+			buzzer = lastNotification.getParseObject("from").fetch();
 	    	boolean check = buzzer.getObjectId().equals(selectedUser.getObjectId());
-	    	message = buzzer.getString("name")+"buzzed you... \n"; 
+	    	message = buzzer.getString("name")+" buzzed you... \n"; 
 	    	if (check) {
 	    		message += "You guessed right!";
 	    	} else {
@@ -357,16 +397,30 @@ public class GameFragment extends Fragment{
 		sendNotificationAll(userFrom, userTo, game);
 	}
 	
-	protected void updateData(ParseObject game) {
+	protected void updateData(final ParseObject game) {
 		this.game = game;
-		textView.setText("Game: "+game.getString("name"));
+		textView.setText("Game: "+game.getString("name")+"          Round: "+game.getInt("rounds"));
 		playerAdapter.loadObjects();
+
 		if (game.getParseObject("lastNotification") != null) {
 			game.getParseObject("lastNotification").fetchInBackground(new GetCallback<ParseObject>() {
 	
 				@Override
 				public void done(ParseObject notification, ParseException arg1) {
 					lastNotification = notification;
+//					notification.getParseObject("to").fetchInBackground(new GetCallback<ParseObject>() {
+//
+//						@Override
+//						public void done(ParseObject object, ParseException e) {
+//							String gameStats = "Game: "+game.getString("name")+"     Rounds: "+game.getInt("rounds");
+//							if (object.getObjectId().equals(Application.user)) {
+//								gameStats += "\nGuess who buzzed you\n";
+//							}
+//							textView.setText(gameStats);
+//							
+//						}
+//					});
+					setTurnText();
 				}
 			});
 		}
@@ -383,4 +437,8 @@ public class GameFragment extends Fragment{
 		.setIcon(android.R.drawable.ic_dialog_alert)
 		.show();
 	}
+	
+	
+
+	
 }

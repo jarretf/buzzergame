@@ -22,7 +22,6 @@
         android:id="@+id/new_user_text"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_toRightOf="@+id/new_user_label"
         android:ems="10"
         android:inputType="textPersonName"
         android:layout_centerHorizontal="true"
