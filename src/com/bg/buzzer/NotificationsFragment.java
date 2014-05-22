@@ -83,10 +83,12 @@ public class NotificationsFragment extends Fragment{
 			        		    	ArrayList<ParseQuery<ParseObject>> orQueryList = new ArrayList<ParseQuery<ParseObject>>();
 			        		    	orQueryList.add(new ParseQuery<ParseObject>("Notifications").whereEqualTo("from", Application.user));
 			        		    	orQueryList.add(new ParseQuery<ParseObject>("Notifications").whereEqualTo("to", Application.user));
-			        		        return ParseQuery.or(orQueryList);
+			        		        return ParseQuery.or(orQueryList).addDescendingOrder("createdAt");
 			        		    	//return new ParseQuery<ParseObject>("Notifications");
 			        		    }
 			        		  });
+        notificationsAdapter.setImageKey("");
+        notificationsAdapter.setPlaceholder(getResources().getDrawable(android.R.drawable.ic_menu_view));
         //notificationsAdapter.setTextKey("game");
         //notificationsAdapter.
         
@@ -124,7 +126,7 @@ public class NotificationsFragment extends Fragment{
     }
 
 	
-    public class NotificationsAdapter extends ParseQueryAdapter<ParseObject> {
+    public class NotificationsAdapter extends DisgnedQueryAdapter {
 
 		public NotificationsAdapter(
 				Context context,
@@ -135,30 +137,30 @@ public class NotificationsFragment extends Fragment{
 		
 		@Override
 		public View getItemView(ParseObject object, View v, ViewGroup parent) {
-		  if (v == null) {
-		    v = View.inflate(getContext(), R.layout.notification_list_item, null);
-		  }
+//		  if (v == null) {
+//		    v = View.inflate(getContext(), R.layout.notification_list_item, null);
+//		  }
 		 
 		  // Take advantage of ParseQueryAdapter's getItemView logic for
 		  // populating the main TextView/ImageView.
 		  // The IDs in your custom layout must match what ParseQueryAdapter expects
 		  // if it will be populating a TextView or ImageView for you.
-		  super.getItemView(object, v, parent);
+		  v = super.getItemView(object, v, parent);
 		  
-		  ParseImageView image = (ParseImageView) v.findViewById(R.id.icon);
-		  ParseFile photoFile = null;
-		  if (photoFile != null) {
-		      image.setParseFile(photoFile);
-		      image.loadInBackground(new GetDataCallback() {
-			      @Override
-	              public void done(byte[] data, ParseException e) {
-			                // nothing to do
-			            }
-			      });
-		  }
+//		  ParseImageView image = (ParseImageView) v.findViewById(R.id.icon);
+//		  ParseFile photoFile = null;
+//		  if (photoFile != null) {
+//		      image.setParseFile(photoFile);
+//		      image.loadInBackground(new GetDataCallback() {
+//			      @Override
+//	              public void done(byte[] data, ParseException e) {
+//			                // nothing to do
+//			            }
+//			      });
+//		  }
 		 
 		  // Do additional configuration before returning the View.
-		  TextView descriptionView = (TextView) v.findViewById(R.id.text1);
+		  TextView descriptionView = (TextView) v.findViewById(android.R.id.text1);
 		  try {
 			String text = "";
 			String gameName = object.getParseObject("game").fetch().getString("name");

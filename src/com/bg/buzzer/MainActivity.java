@@ -62,6 +62,7 @@ public class MainActivity extends ActionBarActivity implements ActionBar.TabList
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        Toast.makeText(this, "Loading... Please wait", Toast.LENGTH_LONG).show();
         // Set up the action bar.
         final ActionBar actionBar = getSupportActionBar();
         actionBar.setNavigationMode(ActionBar.NAVIGATION_MODE_TABS);
@@ -110,10 +111,10 @@ public class MainActivity extends ActionBarActivity implements ActionBar.TabList
 
         userLogin();
         mViewPager.setCurrentItem(getIntent().getIntExtra("TAB", 0),false);
-//	      ParseObject parseObject = new ParseObject("AppUser");
-//	      parseObject.put("name", "Guy");
-//	      parseObject.put("installationId", ParseInstallation.getCurrentInstallation().getInstallationId());
-//	      parseObject.saveInBackground();
+//        ParseObject parseObject = new ParseObject("Notification");
+//	    parseObject.put("from", ParseObject.);
+//	    parseObject.put("installationId", ParseInstallation.getCurrentInstallation().getInstallationId());
+//	    parseObject.saveInBackground();
     }	
 
 
@@ -292,7 +293,7 @@ public class MainActivity extends ActionBarActivity implements ActionBar.TabList
         		return GamesFragment.newInstance(position+1);
         	}
         	if (position == 1) {
-        		gameFragment = GameFragment.newInstance("njlbGL0qb4");
+        		gameFragment = GameFragment.newInstance("J7zVpIhOct");
         		return gameFragment;
         	}
         	if (position == 2) {

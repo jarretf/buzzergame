@@ -1,10 +1,13 @@
 package com.bg.buzzer;
 
+import java.util.List;
+
 import com.bg.buzzer.MainActivity.PlaceholderFragment;
 import com.parse.ParseException;
 import com.parse.ParseInstallation;
 import com.parse.ParseObject;
 import com.parse.ParseQueryAdapter;
+import com.parse.ParseQueryAdapter.OnQueryLoadListener;
 
 import android.app.AlertDialog;
 import android.app.AlertDialog.Builder;
@@ -15,6 +18,7 @@ import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.app.FragmentTransaction;
 import android.util.Log;
+import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -65,9 +69,15 @@ public class GamesFragment extends Fragment {
     	this.inflater = inflater;
         View rootView = inflater.inflate(R.layout.fragment_games, container, false);
         final ViewGroup mContainer = container;
-        adapter = new ParseQueryAdapter<ParseObject>(rootView.getContext(), "Game");
+        
+        TextView pickText = (TextView)rootView.findViewById(R.id.pick_game_label);
+        pickText.setTextSize(TypedValue.COMPLEX_UNIT_SP,22);
+        
+        adapter = new DisgnedQueryAdapter(rootView.getContext(), "Game");
         adapter.setTextKey("name");
-        //adapter.setImageKey("photo");
+        adapter.setImageKey("photo");
+        adapter.setPlaceholder(getResources().getDrawable(android.R.drawable.ic_menu_compass));
+
        
         ListView listView = (ListView) rootView.findViewById(R.id.games_list_label);
         listView.setAdapter(adapter);
